@@ -9,23 +9,33 @@ import { filter, map } from 'rxjs/operators';
   styles: [
   ]
 })
-export class BreadcrumbsComponent {
+export class BreadcrumbsComponent implements OnDestroy {
+
+  public titulo?: string;
+  public tituloSubs$?: Subscription;
 
   
 
   constructor( private router: Router ) {
-    /* this.router.events
-    .pipe(
-      filter( event => event instanceof ActivationEnd),
-      filter( (event:ActivationEnd) => event.snapshot.firstChild === null),
-    )
-    .subscribe( event => {
-      console.log( event);
-    }); */
-     
-    
+    this.tituloSubs$ = this.getArguementosRuta()
+    .subscribe( ({ titulo }) => {
+      this.titulo = titulo;
+      document.title = `AdminPro - ${titulo}`;
+    });
+  }
+  ngOnDestroy(): void {
+    this.tituloSubs$?.unsubscribe();
   }
   
+  getArguementosRuta(){
+    return this.router.events
+    .pipe(
+      filter( (event): event is ActivationEnd => event instanceof ActivationEnd),
+      filter( (event:ActivationEnd) => event.snapshot.firstChild === null),
+      map(( event:ActivationEnd) => event.snapshot.data)
+    );
+    
+  }
 
 
   
