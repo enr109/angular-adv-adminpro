@@ -5,8 +5,9 @@ import { environment } from '../../environments/environment';
 import { LoginForm } from '../interfaces/login-form.interface';
 import { Router } from '@angular/router';
 import { Observable, of } from 'rxjs';
-import { catchError, map,tap } from 'rxjs/operators';
+import { catchError, delay, map,tap } from 'rxjs/operators';
 import { Usuario } from '../models/usuario.model';
+import { CargarUsuario } from '../interfaces/cargar-usuarios.interface';
 
 
 const base_url = environment.base_url;
@@ -32,7 +33,15 @@ export class UsuarioService {
   get token(): string {
     return localStorage.getItem('token') || '';
   }
-  
+
+  get headers(){
+    return {
+      headers: {
+        'x-token': this.token
+      }
+    }
+  }
+
   get uid(): string {
     return this.usuario?.uid || '';
   }
@@ -92,11 +101,7 @@ export class UsuarioService {
       role:this.usuario?.role
     };
 
-    return this.http.put(`${ base_url }/usuarios/${ this.uid }`, data, {
-      headers: {
-        'x-token': this.token
-      }
-    } );
+    return this.http.put(`${ base_url }/usuarios/${ this.uid }`, data,  this.headers);
 
   }
 
@@ -117,4 +122,33 @@ export class UsuarioService {
       })
     );
   }
+
+  cargarUsuario( desde: number = 0){
+
+    const url = `${ base_url }/usuarios?desde=${ desde }`;
+    return this.http.get<CargarUsuario>(url, this.headers)
+           .pipe(
+             delay(1000),
+             map( resp => {
+               const usuarios = resp.usuario.map( user => new Usuario( user.nombre, user.email, '', user.img, user.google, user.role, user.uid));
+               return {
+                 total: resp.total,
+                 usuarios
+               };
+             })
+           )
+
+  }
+
+  eliminarUsuario( usuario: Usuario){
+    const url = `${ base_url }/usuarios/${ usuario.uid}`;
+    return this.http.delete( url, this.headers);
+  }
+
+  guardarUsuario( usuario: Usuario ){
+
+    return this.http.put(`${ base_url }/usuarios/${ usuario.uid }`, usuario,  this.headers);
+
+  }
+  
 }
